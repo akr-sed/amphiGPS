@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#1a1a2e">
+  <title>AmphiGPS – Attendance Logger</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header>
+    <h1>AmphiGPS</h1>
+    <p class="subtitle">Amphitheatre Attendance Logger</p>
+  </header>
+
+  <!-- ── Counters ── -->
+  <section id="counters" class="counters" aria-label="Sample counters">
+    <div class="counter-box">
+      <span class="counter-value" id="totalCount">0</span>
+      <span class="counter-label">Total</span>
+    </div>
+    <div class="counter-box counter-in">
+      <span class="counter-value" id="inCount">0</span>
+      <span class="counter-label">IN</span>
+    </div>
+    <div class="counter-box counter-out">
+      <span class="counter-value" id="outCount">0</span>
+      <span class="counter-label">OUT</span>
+    </div>
+  </section>
+
+  <!-- ── Settings ── -->
+  <details id="settingsPanel" class="settings-panel">
+    <summary>Settings</summary>
+    <div class="settings-body">
+      <label for="accuracyThreshold">
+        Accuracy threshold (m):
+        <input type="number" id="accuracyThreshold" min="1" max="500" value="20" step="1">
+      </label>
+      <label for="includeNotes" class="checkbox-label">
+        <input type="checkbox" id="includeNotes">
+        Include notes column in CSV export
+      </label>
+    </div>
+  </details>
+
+  <!-- ── Capture Buttons ── -->
+  <section class="capture-buttons" aria-label="Capture controls">
+    <button id="btnCaptureIn" class="btn btn-in" type="button">Capture IN</button>
+    <button id="btnCaptureOut" class="btn btn-out" type="button">Capture OUT</button>
+  </section>
+
+  <!-- ── Loading Spinner ── -->
+  <div id="loadingOverlay" class="loading-overlay hidden" aria-live="polite">
+    <div class="spinner"></div>
+    <p>Acquiring GPS…</p>
+  </div>
+
+  <!-- ── Pending Capture Panel ── -->
+  <section id="pendingPanel" class="pending-panel hidden" aria-live="polite" aria-label="Pending capture">
+    <h2>Pending Capture: <span id="pendingLabel" class="pending-label-tag"></span></h2>
+    <div id="accuracyWarning" class="accuracy-warning hidden">
+      ⚠️ Accuracy (<span id="warnAccVal"></span> m) exceeds threshold (<span id="warnThreshVal"></span> m)
+    </div>
+    <table class="pending-table">
+      <tr><th>Latitude</th><td id="pendingLat">—</td></tr>
+      <tr><th>Longitude</th><td id="pendingLon">—</td></tr>
+      <tr><th>Accuracy</th><td id="pendingAcc">—</td></tr>
+      <tr><th>Timestamp</th><td id="pendingTime">—</td></tr>
+    </table>
+    <label for="notesInput" class="notes-label">Notes (optional):</label>
+    <input type="text" id="notesInput" class="notes-input" placeholder="e.g. row 5, seat 3" maxlength="200">
+    <div class="pending-actions">
+      <button id="btnSave" class="btn btn-save" type="button">OK (Save)</button>
+      <button id="btnDiscard" class="btn btn-discard" type="button">Discard</button>
+    </div>
+  </section>
+
+  <!-- ── Action Buttons ── -->
+  <section class="action-buttons" aria-label="Data actions">
+    <button id="btnExport" class="btn btn-export" type="button">Export captured so far</button>
+    <button id="btnClear" class="btn btn-clear" type="button">Clear all data</button>
+  </section>
+
+  <!-- ── Data Table ── -->
+  <section id="dataSection" class="data-section" aria-label="Saved samples">
+    <h2>Saved Samples</h2>
+    <div class="table-wrapper">
+      <table id="dataTable" class="data-table">
+        <thead>
+          <tr>
+            <th>Label</th>
+            <th>Timestamp</th>
+            <th>Accuracy (m)</th>
+            <th>Lat</th>
+            <th>Lon</th>
+            <th>Notes</th>
+          </tr>
+        </thead>
+        <tbody id="dataBody"></tbody>
+      </table>
+    </div>
+    <p id="emptyMsg" class="empty-msg">No samples yet.</p>
+  </section>
+
+  <footer>
+    <p>Data stored in browser only. Export regularly.</p>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>

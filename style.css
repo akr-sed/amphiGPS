@@ -1,0 +1,409 @@
+/* ── Reset & Base ── */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  font-size: 16px;
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  background: #f4f5f7;
+  color: #1a1a2e;
+  min-height: 100dvh;
+  padding: 1rem;
+  padding-bottom: 2rem;
+  max-width: 480px;
+  margin: 0 auto;
+}
+
+/* ── Header ── */
+header {
+  text-align: center;
+  margin-bottom: 1rem;
+}
+
+header h1 {
+  font-size: 1.6rem;
+  color: #1a1a2e;
+  letter-spacing: 0.5px;
+}
+
+.subtitle {
+  font-size: 0.85rem;
+  color: #666;
+  margin-top: 0.15rem;
+}
+
+/* ── Counters ── */
+.counters {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.counter-box {
+  flex: 1;
+  background: #fff;
+  border-radius: 10px;
+  padding: 0.6rem 0.3rem;
+  text-align: center;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+.counter-value {
+  display: block;
+  font-size: 1.8rem;
+  font-weight: 700;
+}
+
+.counter-label {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  color: #888;
+  letter-spacing: 0.5px;
+}
+
+.counter-in .counter-value { color: #2ecc71; }
+.counter-out .counter-value { color: #e74c3c; }
+
+/* ── Settings Panel ── */
+.settings-panel {
+  background: #fff;
+  border-radius: 10px;
+  padding: 0.6rem 1rem;
+  margin-bottom: 1rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+.settings-panel summary {
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: #555;
+  user-select: none;
+}
+
+.settings-body {
+  margin-top: 0.7rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.settings-body label {
+  font-size: 0.85rem;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.settings-body input[type="number"] {
+  width: 65px;
+  padding: 0.3rem 0.4rem;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  text-align: center;
+}
+
+.checkbox-label {
+  cursor: pointer;
+}
+
+.checkbox-label input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  accent-color: #1a1a2e;
+}
+
+/* ── Buttons (shared) ── */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 12px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0.85rem 1.2rem;
+  transition: opacity 0.15s, transform 0.1s;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+  touch-action: manipulation;
+}
+
+.btn:active {
+  transform: scale(0.97);
+}
+
+.btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* ── Capture Buttons ── */
+.capture-buttons {
+  display: flex;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.btn-in, .btn-out {
+  flex: 1;
+  font-size: 1.15rem;
+  padding: 1.1rem 0.5rem;
+  min-height: 64px;
+  color: #fff;
+}
+
+.btn-in {
+  background: #2ecc71;
+}
+
+.btn-out {
+  background: #e74c3c;
+}
+
+/* ── Loading Overlay ── */
+.loading-overlay {
+  text-align: center;
+  padding: 1.2rem;
+  margin-bottom: 1rem;
+  background: #fff;
+  border-radius: 10px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+.loading-overlay p {
+  margin-top: 0.6rem;
+  font-size: 0.9rem;
+  color: #555;
+}
+
+.spinner {
+  width: 36px;
+  height: 36px;
+  border: 4px solid #e0e0e0;
+  border-top-color: #1a1a2e;
+  border-radius: 50%;
+  margin: 0 auto;
+  animation: spin 0.75s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ── Pending Panel ── */
+.pending-panel {
+  background: #fff;
+  border-radius: 10px;
+  padding: 1rem;
+  margin-bottom: 1rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+  border-left: 5px solid #3498db;
+}
+
+.pending-panel h2 {
+  font-size: 1rem;
+  margin-bottom: 0.6rem;
+}
+
+.pending-label-tag {
+  font-weight: 700;
+  padding: 0.15rem 0.6rem;
+  border-radius: 4px;
+  font-size: 0.9rem;
+}
+
+.pending-label-tag.label-IN {
+  background: #d5f5e3;
+  color: #1e8449;
+}
+
+.pending-label-tag.label-OUT {
+  background: #fadbd8;
+  color: #c0392b;
+}
+
+.accuracy-warning {
+  background: #fff3cd;
+  color: #856404;
+  padding: 0.5rem 0.7rem;
+  border-radius: 6px;
+  font-size: 0.82rem;
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+}
+
+.pending-table {
+  width: 100%;
+  font-size: 0.85rem;
+  margin-bottom: 0.6rem;
+}
+
+.pending-table th {
+  text-align: left;
+  padding: 0.25rem 0.4rem;
+  color: #666;
+  font-weight: 500;
+  width: 100px;
+}
+
+.pending-table td {
+  padding: 0.25rem 0.4rem;
+  font-family: "SF Mono", "Fira Code", monospace;
+  word-break: break-all;
+}
+
+.notes-label {
+  font-size: 0.82rem;
+  color: #666;
+  display: block;
+  margin-bottom: 0.2rem;
+}
+
+.notes-input {
+  width: 100%;
+  padding: 0.45rem 0.6rem;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  margin-bottom: 0.7rem;
+}
+
+.pending-actions {
+  display: flex;
+  gap: 0.6rem;
+}
+
+.btn-save {
+  flex: 1;
+  background: #2ecc71;
+  color: #fff;
+}
+
+.btn-discard {
+  flex: 1;
+  background: #95a5a6;
+  color: #fff;
+}
+
+/* ── Action Buttons ── */
+.action-buttons {
+  display: flex;
+  gap: 0.6rem;
+  margin-bottom: 1rem;
+}
+
+.btn-export {
+  flex: 1;
+  background: #3498db;
+  color: #fff;
+  font-size: 0.9rem;
+}
+
+.btn-clear {
+  flex: 0 0 auto;
+  background: #e74c3c;
+  color: #fff;
+  font-size: 0.9rem;
+  padding-left: 1rem;
+  padding-right: 1rem;
+}
+
+/* ── Data Table ── */
+.data-section {
+  background: #fff;
+  border-radius: 10px;
+  padding: 0.8rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  margin-bottom: 1rem;
+}
+
+.data-section h2 {
+  font-size: 1rem;
+  margin-bottom: 0.5rem;
+}
+
+.table-wrapper {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.75rem;
+  white-space: nowrap;
+}
+
+.data-table thead th {
+  background: #f0f0f0;
+  padding: 0.4rem 0.5rem;
+  text-align: left;
+  font-weight: 600;
+  position: sticky;
+  top: 0;
+}
+
+.data-table tbody td {
+  padding: 0.35rem 0.5rem;
+  border-bottom: 1px solid #eee;
+  font-family: "SF Mono", "Fira Code", monospace;
+  font-size: 0.72rem;
+}
+
+.data-table tbody tr:nth-child(even) {
+  background: #fafafa;
+}
+
+.label-cell-IN {
+  color: #1e8449;
+  font-weight: 700;
+}
+
+.label-cell-OUT {
+  color: #c0392b;
+  font-weight: 700;
+}
+
+.empty-msg {
+  text-align: center;
+  color: #999;
+  font-size: 0.85rem;
+  padding: 1rem 0;
+}
+
+/* ── Footer ── */
+footer {
+  text-align: center;
+  font-size: 0.75rem;
+  color: #aaa;
+  margin-top: 1rem;
+}
+
+/* ── Utility ── */
+.hidden {
+  display: none !important;
+}
+
+/* ── Responsive tweaks for very small screens ── */
+@media (max-width: 360px) {
+  .btn-in, .btn-out {
+    font-size: 1rem;
+    padding: 0.9rem 0.3rem;
+    min-height: 56px;
+  }
+
+  .data-table {
+    font-size: 0.68rem;
+  }
+}
