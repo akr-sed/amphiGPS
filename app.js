@@ -76,7 +76,6 @@
     includeDevice: document.getElementById("includeDevice"),
     syncStats: document.getElementById("syncStats"),
     // Action buttons
-    btnSync: document.getElementById("btnSync"),
     btnExport: document.getElementById("btnExport"),
     btnSessionMap: document.getElementById("btnSessionMap"),
     btnClear: document.getElementById("btnClear"),
@@ -306,23 +305,6 @@
       var timeTd = document.createElement("td");
       timeTd.textContent = formatShortTime(s.timestamp_iso);
 
-      var accTd = document.createElement("td");
-      accTd.className = "acc-cell";
-      var accVal = s.accuracy_m != null ? s.accuracy_m.toFixed(1) : "\u2014";
-      var accSpan = document.createElement("span");
-      accSpan.textContent = accVal;
-      accTd.appendChild(accSpan);
-      // N1: Accuracy heatmap bar
-      if (s.accuracy_m != null) {
-        var barWidth = Math.min(100, (s.accuracy_m / 50) * 100);
-        var barColor = s.accuracy_m < 10 ? "#2ecc71" : s.accuracy_m < 25 ? "#f39c12" : "#e74c3c";
-        var bar = document.createElement("div");
-        bar.className = "accuracy-bar";
-        bar.style.width = barWidth + "%";
-        bar.style.background = barColor;
-        accTd.appendChild(bar);
-      }
-
       var latTd = document.createElement("td");
       latTd.textContent = s.lat != null ? s.lat.toFixed(6) : "\u2014";
 
@@ -342,7 +324,6 @@
       tr.appendChild(amphiTd);
       tr.appendChild(floorTd);
       tr.appendChild(timeTd);
-      tr.appendChild(accTd);
       tr.appendChild(latTd);
       tr.appendChild(lonTd);
       tr.appendChild(confTd);
@@ -640,30 +621,6 @@
     await handleCapture(label);
   }
 
-  // ── Sync (H6) ──
-  async function handleSync() {
-    dom.btnSync.disabled = true;
-    dom.btnSync.textContent = "Syncing\u2026";
-    try {
-      var result = await DbService.syncPending(samples, saveToStorage);
-      if (result.success || result.synced > 0) {
-        saveToStorage();
-        renderCounters();
-        updateSyncStats();
-        updateSyncStatusIcon();
-        showToast(result.synced + " samples synced!", "success", 2000);
-      } else if (result.errors && result.errors.length > 0) {
-        showToast("Sync failed: " + result.errors[0], "error", 3000);
-      } else {
-        showToast("Nothing to sync.", "info", 1500);
-      }
-    } catch (e) {
-      showToast("Sync failed: " + e.message, "error", 3000);
-    }
-    dom.btnSync.disabled = false;
-    dom.btnSync.textContent = "Sync pending";
-  }
-
   // ── Sync Stats ──
   function updateSyncStats() {
     var stats = DbService.getStats(samples);
@@ -715,7 +672,7 @@
 
     var headers = [
       "timestamp_iso", "label", "amphi_id", "floor", "confidence",
-      "lat", "lon", "accuracy_m", "altitude_gps", "altitude_acc_gps",
+      "lat", "lon", "altitude_gps", "altitude_acc_gps",
       "pressure_hpa", "baro_alt_m", "session_id",
       "out_location",
     ];
@@ -733,7 +690,6 @@
         s.confidence || "",
         s.lat != null ? s.lat.toFixed(6) : "",
         s.lon != null ? s.lon.toFixed(6) : "",
-        s.accuracy_m != null ? s.accuracy_m.toFixed(1) : "",
         s.altitude_gps != null ? s.altitude_gps.toFixed(1) : "",
         s.altitude_acc_gps != null ? s.altitude_acc_gps.toFixed(1) : "",
         s.pressure_hpa != null ? s.pressure_hpa.toFixed(1) : "",
@@ -1001,7 +957,6 @@
     dom.btnReacquire.addEventListener("click", handleReacquire);
 
     // Actions
-    dom.btnSync.addEventListener("click", handleSync);
     dom.btnExport.addEventListener("click", handleExport);
     dom.btnSessionMap.addEventListener("click", showSessionMap);
     dom.btnClear.addEventListener("click", handleClear);
