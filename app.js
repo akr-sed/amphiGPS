@@ -11,7 +11,6 @@
   var SETTINGS_KEY = "amphigps_settings";
   var COLLECTOR_KEY = "amphigps_collector_id";
   var AMPHI_KEY = "amphigps_session_amphi";
-  var GEO_OPTIONS = { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 };
   var APP_VERSION = "2.0.0";
 
   // Floor is auto-derived from amphi name
@@ -73,7 +72,6 @@
     // Settings
     settingsPanel: document.getElementById("settingsPanel"),
     accuracyThreshold: document.getElementById("accuracyThreshold"),
-    gpsSamplesBtns: document.getElementById("gpsSamplesBtns"),
     includeNotes: document.getElementById("includeNotes"),
     includeDevice: document.getElementById("includeDevice"),
     syncStats: document.getElementById("syncStats"),
@@ -145,7 +143,7 @@
     } catch (e) {
       console.warn("Failed to load settings:", e);
     }
-    return { accuracyThreshold: 20, nGpsSamples: 5, includeNotes: false, includeDevice: false };
+    return { accuracyThreshold: 20, includeNotes: false, includeDevice: false };
   }
 
   function saveSettings() {
@@ -159,11 +157,6 @@
     dom.accuracyThreshold.value = settings.accuracyThreshold;
     dom.includeNotes.checked = settings.includeNotes;
     dom.includeDevice.checked = settings.includeDevice;
-    // GPS samples buttons
-    var btns = dom.gpsSamplesBtns.querySelectorAll(".gps-samples-btn");
-    btns.forEach(function (b) {
-      b.classList.toggle("active", parseInt(b.dataset.n, 10) === settings.nGpsSamples);
-    });
     // Collector
     dom.collectorInput.value = collectorId;
   }
@@ -458,16 +451,44 @@
     });
   }
 
-  // ── Geolocation (C1) ──
-  function acquirePosition() {
+  // ── Geolocation – watchPosition burst (C1/H1) ──
+  var GPS_BURST_MAX_MS = 4000;   // hard time cap
+  var GPS_BURST_MIN_READINGS = 2; // need at least 2 before early exit
+
+  function acquireAveragedPosition() {
     return new Promise(function (resolve, reject) {
       if (!navigator.geolocation) {
         reject(new Error("Geolocation API is not supported by this browser."));
         return;
       }
-      navigator.geolocation.getCurrentPosition(
+
+      var readings = [];
+      var done = false;
+      var threshold = getThreshold();
+      var startTime = Date.now();
+
+      function finish() {
+        if (done) return;
+        done = true;
+        navigator.geolocation.clearWatch(watchId);
+        if (readings.length === 0) {
+          reject(new Error("No GPS readings received. Ensure GPS/Location is enabled."));
+          return;
+        }
+        resolve(processReadings(readings));
+      }
+
+      // Update loading text with elapsed time
+      var tickInterval = setInterval(function () {
+        if (done) { clearInterval(tickInterval); return; }
+        var elapsed = ((Date.now() - startTime) / 1000).toFixed(0);
+        setLoading(true, "GPS: " + readings.length + " readings (" + elapsed + "s)\u2026");
+      }, 300);
+
+      var watchId = navigator.geolocation.watchPosition(
         function (pos) {
-          resolve({
+          if (done) return;
+          readings.push({
             lat: pos.coords.latitude,
             lon: pos.coords.longitude,
             accuracy: pos.coords.accuracy,
@@ -475,57 +496,47 @@
             altitude_acc_gps: pos.coords.altitudeAccuracy,
             timestamp: new Date(pos.timestamp).toISOString(),
           });
+          // Early exit: good accuracy + enough readings
+          if (readings.length >= GPS_BURST_MIN_READINGS && pos.coords.accuracy <= threshold) {
+            clearInterval(tickInterval);
+            finish();
+          }
         },
         function (err) {
-          var msg;
-          switch (err.code) {
-            case err.PERMISSION_DENIED:
-              msg = "Location permission denied. Please allow location access.";
-              break;
-            case err.POSITION_UNAVAILABLE:
-              msg = "Location unavailable. Ensure GPS/Location is enabled.";
-              break;
-            case err.TIMEOUT:
-              msg = "Location request timed out. Try again in an open area.";
-              break;
-            default:
-              msg = "Geolocation error: " + err.message;
+          if (done) return;
+          // If we already have readings, just stop; otherwise reject
+          if (readings.length > 0) {
+            clearInterval(tickInterval);
+            finish();
+          } else {
+            done = true;
+            clearInterval(tickInterval);
+            navigator.geolocation.clearWatch(watchId);
+            var msg;
+            switch (err.code) {
+              case err.PERMISSION_DENIED:
+                msg = "Location permission denied. Please allow location access.";
+                break;
+              case err.POSITION_UNAVAILABLE:
+                msg = "Location unavailable. Ensure GPS/Location is enabled.";
+                break;
+              case err.TIMEOUT:
+                msg = "Location request timed out. Try again in an open area.";
+                break;
+              default:
+                msg = "Geolocation error: " + err.message;
+            }
+            reject(new Error(msg));
           }
-          reject(new Error(msg));
         },
-        GEO_OPTIONS
+        { enableHighAccuracy: true, timeout: GPS_BURST_MAX_MS + 2000, maximumAge: 0 }
       );
-    });
-  }
 
-  // ── Multi-sample GPS Averaging (H1) ──
-  function acquireAveragedPosition(n, intervalMs) {
-    n = n || settings.nGpsSamples || 5;
-    intervalMs = intervalMs || 1500;
-    return new Promise(function (resolve, reject) {
-      var readings = [];
-      var count = 0;
-      function getNext() {
-        count++;
-        setLoading(true, "GPS reading " + count + "/" + n + "\u2026");
-        acquirePosition().then(function (pos) {
-          readings.push(pos);
-          if (count < n) {
-            setTimeout(getNext, intervalMs);
-          } else {
-            resolve(processReadings(readings));
-          }
-        }).catch(function (err) {
-          if (readings.length === 0) {
-            reject(err);
-          } else if (count < n) {
-            setTimeout(getNext, intervalMs);
-          } else {
-            resolve(processReadings(readings));
-          }
-        });
-      }
-      getNext();
+      // Hard time cap
+      setTimeout(function () {
+        clearInterval(tickInterval);
+        finish();
+      }, GPS_BURST_MAX_MS);
     });
   }
 
@@ -1087,18 +1098,6 @@
       if (!btn) return;
       selectedConfidence = parseInt(btn.dataset.conf, 10);
       updateConfidenceButtons();
-    });
-
-    // GPS samples buttons
-    dom.gpsSamplesBtns.addEventListener("click", function (e) {
-      var btn = e.target.closest(".gps-samples-btn");
-      if (!btn) return;
-      dom.gpsSamplesBtns.querySelectorAll(".gps-samples-btn").forEach(function (b) {
-        b.classList.remove("active");
-      });
-      btn.classList.add("active");
-      settings.nGpsSamples = parseInt(btn.dataset.n, 10);
-      saveSettings();
     });
 
     // Settings changes
