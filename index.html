@@ -140,6 +140,24 @@
         <button type="button" class="confidence-btn" data-conf="3">High</button>
       </div>
     </div>
+    <!-- Out Location Quick-Pick (OUT captures only) -->
+    <div id="outLocationSection" class="out-location-section hidden">
+      <label class="out-location-label">Your actual location:</label>
+      <div id="outLocationBtns" class="out-location-btns">
+        <button type="button" class="out-loc-btn active" data-loc="Hallway">Hallway</button>
+        <button type="button" class="out-loc-btn" data-loc="In Amphi 1">Amphi 1</button>
+        <button type="button" class="out-loc-btn" data-loc="In Amphi 2">Amphi 2</button>
+        <button type="button" class="out-loc-btn" data-loc="In Amphi 3">Amphi 3</button>
+        <button type="button" class="out-loc-btn" data-loc="In Amphi 4">Amphi 4</button>
+        <button type="button" class="out-loc-btn" data-loc="In Amphi 5">Amphi 5</button>
+        <button type="button" class="out-loc-btn" data-loc="In Amphi 6">Amphi 6</button>
+        <button type="button" class="out-loc-btn" data-loc="In Amphi 7">Amphi 7</button>
+        <button type="button" class="out-loc-btn" data-loc="In Amphi 8">Amphi 8</button>
+        <button type="button" class="out-loc-btn" data-loc="Outside building">Outside</button>
+        <button type="button" class="out-loc-btn" data-loc="__custom__">Other...</button>
+      </div>
+      <input type="text" id="outLocationCustom" class="out-location-custom hidden" placeholder="Where are you?" maxlength="100">
+    </div>
     <label for="notesInput" class="notes-label">Notes (optional):</label>
     <input type="text" id="notesInput" class="notes-input" placeholder="e.g. row 5, seat 3" maxlength="200">
     <div class="pending-actions">

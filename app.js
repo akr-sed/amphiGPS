@@ -62,6 +62,10 @@
     mapPreview: document.getElementById("mapPreview"),
     confidenceBtns: document.getElementById("confidenceBtns"),
     notesInput: document.getElementById("notesInput"),
+    // Out location quick-pick
+    outLocationSection: document.getElementById("outLocationSection"),
+    outLocationBtns: document.getElementById("outLocationBtns"),
+    outLocationCustom: document.getElementById("outLocationCustom"),
     btnSave: document.getElementById("btnSave"),
     btnReacquire: document.getElementById("btnReacquire"),
     btnDiscard: document.getElementById("btnDiscard"),
@@ -109,6 +113,7 @@
   var collectorId = localStorage.getItem(COLLECTOR_KEY) || "";
   var selectedAmphi = localStorage.getItem(AMPHI_KEY) || "";
   var selectedConfidence = 2;
+  var selectedOutLocation = "Hallway";
   var liveWatchId = null;
   var previewMap = null;
   var sessionMap = null;
@@ -225,13 +230,13 @@
 
   function updateCaptureButtonsState() {
     var amphi = getSelectedAmphi();
-    var ready = !!amphi;
+    var amphiReady = !!amphi;
     var pendingOpen = !dom.pendingPanel.classList.contains("hidden");
     var loadingOpen = !dom.loadingOverlay.classList.contains("hidden");
-    dom.btnCaptureIn.disabled = !ready || pendingOpen || loadingOpen;
-    dom.btnCaptureOut.disabled = !ready || pendingOpen || loadingOpen;
-    dom.btnCaptureIn.title = ready ? "" : "Select an Amphi first";
-    dom.btnCaptureOut.title = ready ? "" : "Select an Amphi first";
+    dom.btnCaptureIn.disabled = !amphiReady || pendingOpen || loadingOpen;
+    dom.btnCaptureOut.disabled = pendingOpen || loadingOpen;
+    dom.btnCaptureIn.title = amphiReady ? "" : "Select an Amphi first";
+    dom.btnCaptureOut.title = "";
   }
 
   // ── Toasts ──
@@ -357,7 +362,10 @@
       confTd.textContent = s.confidence ? "\u2B50".repeat(s.confidence) : "\u2014";
 
       var notesTd = document.createElement("td");
-      notesTd.textContent = s.notes || "";
+      var notesParts = [];
+      if (s.out_location) notesParts.push("[" + s.out_location + "]");
+      if (s.notes) notesParts.push(s.notes);
+      notesTd.textContent = notesParts.join(" ");
 
       tr.appendChild(labelTd);
       tr.appendChild(amphiTd);
@@ -410,6 +418,17 @@
     selectedConfidence = 2;
     updateConfidenceButtons();
 
+    // Show/hide out-location quick-pick based on label
+    if (data.label === "OUT") {
+      dom.outLocationSection.classList.remove("hidden");
+      selectedOutLocation = "Hallway";
+      updateOutLocationButtons();
+      dom.outLocationCustom.classList.add("hidden");
+      dom.outLocationCustom.value = "";
+    } else {
+      dom.outLocationSection.classList.add("hidden");
+    }
+
     // Accuracy threshold warning
     var threshold = getThreshold();
     if (data.accuracy_m > threshold) {
@@ -432,6 +451,10 @@
   function hidePending() {
     dom.pendingPanel.classList.add("hidden");
     dom.accuracyWarning.classList.add("hidden");
+    dom.outLocationSection.classList.add("hidden");
+    dom.outLocationCustom.classList.add("hidden");
+    dom.outLocationCustom.value = "";
+    selectedOutLocation = "Hallway";
     pendingCapture = null;
     destroyMiniMap();
     updateCaptureButtonsState();
@@ -449,6 +472,21 @@
     btns.forEach(function (b) {
       b.classList.toggle("active", parseInt(b.dataset.conf, 10) === selectedConfidence);
     });
+  }
+
+  // ── Out Location Quick-Pick ──
+  function updateOutLocationButtons() {
+    var btns = dom.outLocationBtns.querySelectorAll(".out-loc-btn");
+    btns.forEach(function (b) {
+      b.classList.toggle("active", b.dataset.loc === selectedOutLocation);
+    });
+  }
+
+  function getSelectedOutLocation() {
+    if (selectedOutLocation === "__custom__") {
+      return dom.outLocationCustom.value.trim() || null;
+    }
+    return selectedOutLocation;
   }
 
   // ── Geolocation – watchPosition burst (C1/H1) ──
@@ -666,6 +704,7 @@
       pressure_hpa: pendingCapture.pressure_hpa,
       baro_alt_m: pendingCapture.baro_alt_m,
       notes: dom.notesInput.value.trim(),
+      out_location: pendingCapture.label === "OUT" ? getSelectedOutLocation() : null,
       synced: false,
     };
 
@@ -786,6 +825,7 @@
       "lat", "lon", "accuracy_m", "altitude_gps", "altitude_acc_gps",
       "avg_lat", "avg_lon", "avg_accuracy_m", "n_gps_samples",
       "pressure_hpa", "baro_alt_m", "session_id", "collector_id",
+      "out_location",
     ];
     if (includeNotes) headers.push("notes");
     if (includeDevice) headers.push("device_info");
@@ -812,6 +852,7 @@
         s.baro_alt_m != null ? s.baro_alt_m.toFixed(1) : "",
         s.session_id || "",
         '"' + (s.collector_id || "").replace(/"/g, '""') + '"',
+        '"' + (s.out_location || "").replace(/"/g, '""') + '"',
       ];
       if (includeNotes) {
         row.push('"' + (s.notes || "").replace(/"/g, '""') + '"');
@@ -1098,6 +1139,20 @@
       if (!btn) return;
       selectedConfidence = parseInt(btn.dataset.conf, 10);
       updateConfidenceButtons();
+    });
+
+    // Out location buttons
+    dom.outLocationBtns.addEventListener("click", function (e) {
+      var btn = e.target.closest(".out-loc-btn");
+      if (!btn) return;
+      selectedOutLocation = btn.dataset.loc;
+      updateOutLocationButtons();
+      if (selectedOutLocation === "__custom__") {
+        dom.outLocationCustom.classList.remove("hidden");
+        dom.outLocationCustom.focus();
+      } else {
+        dom.outLocationCustom.classList.add("hidden");
+      }
     });
 
     // Settings changes

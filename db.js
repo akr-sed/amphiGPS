@@ -38,8 +38,8 @@ var DbService = (function () {
       var row = {
         session_id: sample.session_id,
         collector_id: sample.collector_id,
-        amphi_id: sample.amphi_id,
-        floor: sample.floor,
+        amphi_id: sample.amphi_id || null,
+        floor: sample.floor != null ? sample.floor : null,
         timestamp_iso: sample.timestamp_iso,
         label: sample.label,
         lat: sample.lat,
@@ -56,6 +56,7 @@ var DbService = (function () {
         confidence: sample.confidence,
         device_info: sample.device_info,
         notes: sample.notes,
+        out_location: sample.out_location || null,
       };
       var result = await client.from("amphi_samples").insert([row]);
       if (result.error) return { success: false, error: result.error.message };
