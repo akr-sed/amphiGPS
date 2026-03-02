@@ -39,6 +39,116 @@ header h1 {
   margin-top: 0.15rem;
 }
 
+.collector-subtitle {
+  font-size: 0.8rem;
+  color: #3498db;
+  font-weight: 600;
+  margin-top: 0.15rem;
+}
+
+.sync-status-icon {
+  font-size: 0.8rem;
+  vertical-align: middle;
+  margin-left: 0.3rem;
+  cursor: help;
+}
+
+.sync-pending {
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+/* ── Session Context Bar ── */
+.session-bar {
+  background: #1a1a2e;
+  border-radius: 10px;
+  padding: 0.7rem 0.8rem;
+  margin-bottom: 1rem;
+  color: #fff;
+}
+
+.session-bar-row {
+  display: flex;
+  gap: 0.6rem;
+  align-items: flex-end;
+}
+
+.session-field {
+  flex: 1;
+}
+
+.session-field label {
+  display: block;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #aaa;
+  margin-bottom: 0.25rem;
+}
+
+.session-field select {
+  width: 100%;
+  padding: 0.4rem;
+  border-radius: 6px;
+  border: 1px solid #444;
+  background: #2a2a4e;
+  color: #fff;
+  font-size: 0.85rem;
+}
+
+.amphi-custom {
+  width: 100%;
+  padding: 0.35rem 0.4rem;
+  border-radius: 6px;
+  border: 1px solid #444;
+  background: #2a2a4e;
+  color: #fff;
+  font-size: 0.85rem;
+  margin-top: 0.3rem;
+}
+
+.floor-btns {
+  display: flex;
+  gap: 0.3rem;
+}
+
+.floor-btn {
+  width: 36px;
+  height: 36px;
+  border: 2px solid #444;
+  border-radius: 8px;
+  background: #2a2a4e;
+  color: #ccc;
+  font-size: 0.9rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.floor-btn.active {
+  background: #3498db;
+  border-color: #3498db;
+  color: #fff;
+}
+
+.session-pill {
+  margin-top: 0.5rem;
+  text-align: center;
+  font-size: 0.85rem;
+  font-weight: 600;
+  background: #3498db;
+  color: #fff;
+  padding: 0.3rem 0.8rem;
+  border-radius: 20px;
+  display: inline-block;
+  width: 100%;
+}
+
 /* ── Counters ── */
 .counters {
   display: flex;
@@ -70,6 +180,66 @@ header h1 {
 
 .counter-in .counter-value { color: #2ecc71; }
 .counter-out .counter-value { color: #e74c3c; }
+.counter-synced .counter-value { color: #3498db; }
+
+/* ── Live GPS Panel ── */
+.live-gps-panel {
+  background: #fff;
+  border-radius: 10px;
+  padding: 0.6rem 1rem;
+  margin-bottom: 1rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+.live-gps-panel summary {
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: #555;
+  user-select: none;
+}
+
+.live-gps-body {
+  margin-top: 0.5rem;
+}
+
+.live-gps-table {
+  width: 100%;
+  font-size: 0.82rem;
+  margin-bottom: 0.5rem;
+}
+
+.live-gps-table th {
+  text-align: left;
+  padding: 0.2rem 0.4rem;
+  color: #666;
+  font-weight: 500;
+  width: 80px;
+}
+
+.live-gps-table td {
+  padding: 0.2rem 0.4rem;
+  font-family: "SF Mono", "Fira Code", monospace;
+  font-size: 0.8rem;
+}
+
+.accuracy-dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  vertical-align: middle;
+  margin-left: 4px;
+}
+
+.acc-good { background: #2ecc71; }
+.acc-medium { background: #f39c12; }
+.acc-poor { background: #e74c3c; }
+
+.auto-capture-label {
+  font-size: 0.82rem;
+  color: #555;
+}
 
 /* ── Settings Panel ── */
 .settings-panel {
@@ -100,6 +270,7 @@ header h1 {
   display: flex;
   align-items: center;
   gap: 0.4rem;
+  flex-wrap: wrap;
 }
 
 .settings-body input[type="number"] {
@@ -109,6 +280,97 @@ header h1 {
   border-radius: 6px;
   font-size: 0.9rem;
   text-align: center;
+}
+
+.settings-text-input {
+  width: 100%;
+  padding: 0.35rem 0.5rem;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  margin-top: 0.2rem;
+}
+
+.settings-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.settings-group label {
+  font-size: 0.85rem;
+  color: #555;
+}
+
+.gps-samples-btns {
+  display: flex;
+  gap: 0.3rem;
+}
+
+.gps-samples-btn {
+  padding: 0.35rem 0.8rem;
+  border: 2px solid #ccc;
+  border-radius: 8px;
+  background: #f4f5f7;
+  color: #555;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.gps-samples-btn.active {
+  background: #3498db;
+  border-color: #3498db;
+  color: #fff;
+}
+
+.settings-divider {
+  border: none;
+  border-top: 1px solid #eee;
+  margin: 0.3rem 0;
+}
+
+.settings-section-title {
+  font-size: 0.9rem;
+  color: #333;
+  margin-bottom: 0.1rem;
+}
+
+.settings-btn-row {
+  display: flex;
+  gap: 0.4rem;
+}
+
+.btn-small {
+  padding: 0.4rem 0.8rem;
+  font-size: 0.8rem;
+  border-radius: 8px;
+}
+
+.btn-test {
+  background: #3498db;
+  color: #fff;
+}
+
+.btn-save-settings {
+  background: #2ecc71;
+  color: #fff;
+}
+
+.supabase-status {
+  font-size: 0.8rem;
+  color: #666;
+  min-height: 1.2em;
+}
+
+.status-success { color: #2ecc71; font-weight: 600; }
+.status-error { color: #e74c3c; font-weight: 600; }
+
+.sync-stats {
+  font-size: 0.8rem;
+  color: #3498db;
+  font-weight: 500;
 }
 
 .checkbox-label {
@@ -263,6 +525,53 @@ header h1 {
   word-break: break-all;
 }
 
+/* ── Map Preview ── */
+.map-preview {
+  height: 200px;
+  border-radius: 8px;
+  overflow: hidden;
+  margin-bottom: 0.6rem;
+  display: none;
+}
+
+/* ── Confidence ── */
+.confidence-section {
+  margin-bottom: 0.6rem;
+}
+
+.confidence-label {
+  font-size: 0.82rem;
+  color: #666;
+  display: block;
+  margin-bottom: 0.3rem;
+}
+
+.confidence-btns {
+  display: flex;
+  gap: 0.4rem;
+}
+
+.confidence-btn {
+  flex: 1;
+  padding: 0.45rem 0.3rem;
+  border: 2px solid #ddd;
+  border-radius: 8px;
+  background: #f9f9f9;
+  color: #666;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  text-align: center;
+  transition: all 0.15s;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.confidence-btn.active {
+  border-color: #f39c12;
+  background: #fef9e7;
+  color: #b7950b;
+}
+
 .notes-label {
   font-size: 0.82rem;
   color: #666;
@@ -281,13 +590,21 @@ header h1 {
 
 .pending-actions {
   display: flex;
-  gap: 0.6rem;
+  gap: 0.4rem;
 }
 
 .btn-save {
-  flex: 1;
+  flex: 2;
   background: #2ecc71;
   color: #fff;
+}
+
+.btn-reacquire {
+  flex: 1;
+  background: #3498db;
+  color: #fff;
+  font-size: 0.82rem;
+  padding: 0.6rem 0.4rem;
 }
 
 .btn-discard {
@@ -299,24 +616,54 @@ header h1 {
 /* ── Action Buttons ── */
 .action-buttons {
   display: flex;
-  gap: 0.6rem;
+  gap: 0.4rem;
   margin-bottom: 1rem;
+  flex-wrap: wrap;
+}
+
+.btn-sync {
+  flex: 1 1 auto;
+  background: #9b59b6;
+  color: #fff;
+  font-size: 0.82rem;
+  padding: 0.7rem 0.5rem;
 }
 
 .btn-export {
-  flex: 1;
+  flex: 1 1 auto;
   background: #3498db;
   color: #fff;
-  font-size: 0.9rem;
+  font-size: 0.82rem;
+  padding: 0.7rem 0.5rem;
+}
+
+.btn-session-map {
+  flex: 1 1 auto;
+  background: #2c3e50;
+  color: #fff;
+  font-size: 0.82rem;
+  padding: 0.7rem 0.5rem;
 }
 
 .btn-clear {
   flex: 0 0 auto;
   background: #e74c3c;
   color: #fff;
-  font-size: 0.9rem;
-  padding-left: 1rem;
-  padding-right: 1rem;
+  font-size: 0.82rem;
+  padding: 0.7rem 0.8rem;
+}
+
+/* ── Offline Banner ── */
+.offline-banner {
+  background: #fff3cd;
+  color: #856404;
+  padding: 0.6rem 0.8rem;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  text-align: center;
+  margin-bottom: 1rem;
+  border: 1px solid #ffeaa7;
 }
 
 /* ── Data Table ── */
@@ -375,11 +722,54 @@ header h1 {
   font-weight: 700;
 }
 
+/* ── Accuracy Bar (N1) ── */
+.acc-cell {
+  position: relative;
+}
+
+.accuracy-bar {
+  height: 3px;
+  border-radius: 2px;
+  margin-top: 2px;
+  min-width: 2px;
+}
+
 .empty-msg {
   text-align: center;
   color: #999;
   font-size: 0.85rem;
   padding: 1rem 0;
+}
+
+/* ── Per-Amphi Stats ── */
+.amphi-stats-panel {
+  background: #fff;
+  border-radius: 10px;
+  padding: 0.6rem 1rem;
+  margin-bottom: 1rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+.amphi-stats-panel summary {
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: #555;
+  user-select: none;
+}
+
+.amphi-stats-body {
+  margin-top: 0.5rem;
+}
+
+.amphi-stat-row {
+  font-size: 0.85rem;
+  padding: 0.3rem 0;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.amphi-stat-row:last-child {
+  border-bottom: none;
 }
 
 /* ── Footer ── */
@@ -388,6 +778,135 @@ footer {
   font-size: 0.75rem;
   color: #aaa;
   margin-top: 1rem;
+}
+
+/* ── Toast Container ── */
+.toast-container {
+  position: fixed;
+  bottom: 1rem;
+  right: 1rem;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  max-width: 300px;
+}
+
+.toast {
+  padding: 0.6rem 1rem;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  opacity: 0;
+  transform: translateY(10px);
+  transition: opacity 0.3s, transform 0.3s;
+}
+
+.toast-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.toast-success { background: #2ecc71; }
+.toast-warning { background: #f39c12; }
+.toast-error { background: #e74c3c; }
+.toast-info { background: #3498db; }
+
+/* ── Modal Overlay ── */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.6);
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+
+.modal-box {
+  background: #fff;
+  border-radius: 12px;
+  padding: 1.5rem;
+  max-width: 360px;
+  width: 100%;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+}
+
+.modal-box h3 {
+  font-size: 1.1rem;
+  margin-bottom: 0.5rem;
+}
+
+.modal-box p {
+  font-size: 0.9rem;
+  color: #555;
+  margin-bottom: 0.8rem;
+}
+
+.modal-input {
+  width: 100%;
+  padding: 0.6rem 0.8rem;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  font-size: 1rem;
+  margin-bottom: 0.8rem;
+}
+
+.modal-btn {
+  width: 100%;
+}
+
+/* ── Session Map Modal ── */
+.modal-fullscreen {
+  background: #fff;
+  border-radius: 12px;
+  width: 100%;
+  max-width: 100%;
+  height: 90vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.8rem 1rem;
+  border-bottom: 1px solid #eee;
+}
+
+.modal-header h3 {
+  font-size: 1rem;
+  margin: 0;
+}
+
+.btn-close-modal {
+  border: none;
+  background: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+  color: #666;
+  padding: 0.2rem 0.5rem;
+  line-height: 1;
+}
+
+.session-map-container {
+  flex: 1;
+  min-height: 0;
+}
+
+.session-map-legend {
+  padding: 0.5rem 0.8rem;
+  font-size: 0.8rem;
+  border-top: 1px solid #eee;
+  background: #f9f9f9;
 }
 
 /* ── Utility ── */
@@ -405,5 +924,22 @@ footer {
 
   .data-table {
     font-size: 0.68rem;
+  }
+
+  .counter-value {
+    font-size: 1.4rem;
+  }
+
+  .session-bar-row {
+    flex-direction: column;
+    gap: 0.4rem;
+  }
+
+  .action-buttons {
+    flex-wrap: wrap;
+  }
+
+  .action-buttons .btn {
+    flex: 1 1 45%;
   }
 }

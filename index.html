@@ -4,14 +4,39 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
   <meta name="theme-color" content="#1a1a2e">
+  <link rel="manifest" href="manifest.json">
   <title>AmphiGPS – Attendance Logger</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
   <header>
-    <h1>AmphiGPS</h1>
+    <h1>AmphiGPS <span id="syncStatusIcon" class="sync-status-icon"></span></h1>
     <p class="subtitle">Amphitheatre Attendance Logger</p>
+    <p class="collector-subtitle" id="collectorSubtitle"></p>
   </header>
+
+  <!-- ── Session Context Bar ── -->
+  <section id="sessionBar" class="session-bar" aria-label="Session context">
+    <div class="session-bar-row">
+      <div class="session-field session-field-full">
+        <label for="amphiSelect">Amphi:</label>
+        <select id="amphiSelect">
+          <option value="">-- Select --</option>
+          <option value="Amphi 1">Amphi 1</option>
+          <option value="Amphi 2">Amphi 2</option>
+          <option value="Amphi 3">Amphi 3</option>
+          <option value="Amphi 4">Amphi 4</option>
+          <option value="Amphi 5">Amphi 5</option>
+          <option value="Amphi 6">Amphi 6</option>
+          <option value="Amphi 7">Amphi 7</option>
+          <option value="Amphi 8">Amphi 8</option>
+          <option value="__custom__">+ Custom...</option>
+        </select>
+        <input type="text" id="amphiCustom" class="amphi-custom hidden" placeholder="Custom name" maxlength="50">
+      </div>
+    </div>
+    <div id="sessionPill" class="session-pill hidden"></div>
+  </section>
 
   <!-- ── Counters ── -->
   <section id="counters" class="counters" aria-label="Sample counters">
@@ -27,7 +52,29 @@
       <span class="counter-value" id="outCount">0</span>
       <span class="counter-label">OUT</span>
     </div>
+    <div class="counter-box counter-synced">
+      <span class="counter-value" id="syncedCount">0</span>
+      <span class="counter-label">Synced</span>
+    </div>
   </section>
+
+  <!-- ── Live GPS Panel ── -->
+  <details id="liveGpsPanel" class="live-gps-panel">
+    <summary>Live GPS</summary>
+    <div class="live-gps-body">
+      <table class="live-gps-table">
+        <tr><th>Lat</th><td id="liveGpsLat">&mdash;</td></tr>
+        <tr><th>Lon</th><td id="liveGpsLon">&mdash;</td></tr>
+        <tr><th>Accuracy</th><td><span id="liveGpsAcc">&mdash;</span> <span id="liveGpsAccDot" class="accuracy-dot"></span></td></tr>
+        <tr><th>Altitude</th><td id="liveGpsAlt">&mdash;</td></tr>
+        <tr><th>Pressure</th><td id="liveGpsPressure">&mdash;</td></tr>
+      </table>
+      <label for="autoCapture" class="checkbox-label auto-capture-label">
+        <input type="checkbox" id="autoCapture">
+        Auto-capture when accuracy is ready
+      </label>
+    </div>
+  </details>
 
   <!-- ── Settings ── -->
   <details id="settingsPanel" class="settings-panel">
@@ -37,50 +84,91 @@
         Accuracy threshold (m):
         <input type="number" id="accuracyThreshold" min="1" max="500" value="20" step="1">
       </label>
+      <div class="settings-group">
+        <label>GPS samples to average:</label>
+        <div id="gpsSamplesBtns" class="gps-samples-btns">
+          <button type="button" class="gps-samples-btn" data-n="3">3</button>
+          <button type="button" class="gps-samples-btn active" data-n="5">5</button>
+          <button type="button" class="gps-samples-btn" data-n="10">10</button>
+        </div>
+      </div>
       <label for="includeNotes" class="checkbox-label">
         <input type="checkbox" id="includeNotes">
         Include notes column in CSV export
       </label>
+      <label for="includeDevice" class="checkbox-label">
+        <input type="checkbox" id="includeDevice">
+        Include device info in CSV export
+      </label>
+      <hr class="settings-divider">
+      <p id="syncStats" class="sync-stats"></p>
+      <hr class="settings-divider">
+      <label for="collectorInput">
+        Your name/ID:
+        <input type="text" id="collectorInput" class="settings-text-input" placeholder="e.g. Ahmed" maxlength="100">
+      </label>
+      <button type="button" id="btnSaveCollector" class="btn btn-small btn-save-settings">Save Collector ID</button>
     </div>
   </details>
 
   <!-- ── Capture Buttons ── -->
   <section class="capture-buttons" aria-label="Capture controls">
-    <button id="btnCaptureIn" class="btn btn-in" type="button">Capture IN</button>
-    <button id="btnCaptureOut" class="btn btn-out" type="button">Capture OUT</button>
+    <button id="btnCaptureIn" class="btn btn-in" type="button" disabled title="Select an Amphi first">Capture IN</button>
+    <button id="btnCaptureOut" class="btn btn-out" type="button" disabled title="Select an Amphi first">Capture OUT</button>
   </section>
 
   <!-- ── Loading Spinner ── -->
   <div id="loadingOverlay" class="loading-overlay hidden" aria-live="polite">
     <div class="spinner"></div>
-    <p>Acquiring GPS…</p>
+    <p id="loadingText">Acquiring GPS&hellip;</p>
   </div>
 
   <!-- ── Pending Capture Panel ── -->
   <section id="pendingPanel" class="pending-panel hidden" aria-live="polite" aria-label="Pending capture">
     <h2>Pending Capture: <span id="pendingLabel" class="pending-label-tag"></span></h2>
     <div id="accuracyWarning" class="accuracy-warning hidden">
-      ⚠️ Accuracy (<span id="warnAccVal"></span> m) exceeds threshold (<span id="warnThreshVal"></span> m)
+      Warning: Accuracy (<span id="warnAccVal"></span> m) exceeds threshold (<span id="warnThreshVal"></span> m)
     </div>
     <table class="pending-table">
-      <tr><th>Latitude</th><td id="pendingLat">—</td></tr>
-      <tr><th>Longitude</th><td id="pendingLon">—</td></tr>
-      <tr><th>Accuracy</th><td id="pendingAcc">—</td></tr>
-      <tr><th>Timestamp</th><td id="pendingTime">—</td></tr>
+      <tr><th>Latitude</th><td id="pendingLat">&mdash;</td></tr>
+      <tr><th>Longitude</th><td id="pendingLon">&mdash;</td></tr>
+      <tr><th>Accuracy</th><td id="pendingAcc">&mdash;</td></tr>
+      <tr><th>Altitude</th><td id="pendingAlt">&mdash;</td></tr>
+      <tr><th>Pressure</th><td id="pendingPressure">&mdash;</td></tr>
+      <tr><th>Avg Accuracy</th><td id="pendingAvgAcc">&mdash;</td></tr>
+      <tr><th>GPS Samples</th><td id="pendingNSamples">&mdash;</td></tr>
+      <tr><th>Timestamp</th><td id="pendingTime">&mdash;</td></tr>
     </table>
+    <div id="mapPreview" class="map-preview"></div>
+    <div class="confidence-section">
+      <label class="confidence-label">Confidence:</label>
+      <div id="confidenceBtns" class="confidence-btns">
+        <button type="button" class="confidence-btn" data-conf="1">Low</button>
+        <button type="button" class="confidence-btn active" data-conf="2">Medium</button>
+        <button type="button" class="confidence-btn" data-conf="3">High</button>
+      </div>
+    </div>
     <label for="notesInput" class="notes-label">Notes (optional):</label>
     <input type="text" id="notesInput" class="notes-input" placeholder="e.g. row 5, seat 3" maxlength="200">
     <div class="pending-actions">
       <button id="btnSave" class="btn btn-save" type="button">OK (Save)</button>
+      <button id="btnReacquire" class="btn btn-reacquire" type="button">Re-acquire GPS</button>
       <button id="btnDiscard" class="btn btn-discard" type="button">Discard</button>
     </div>
   </section>
 
   <!-- ── Action Buttons ── -->
   <section class="action-buttons" aria-label="Data actions">
-    <button id="btnExport" class="btn btn-export" type="button">Export captured so far</button>
-    <button id="btnClear" class="btn btn-clear" type="button">Clear all data</button>
+    <button id="btnSync" class="btn btn-sync" type="button">Sync pending</button>
+    <button id="btnExport" class="btn btn-export" type="button">Export CSV</button>
+    <button id="btnSessionMap" class="btn btn-session-map" type="button">Session Map</button>
+    <button id="btnClear" class="btn btn-clear" type="button">Clear all</button>
   </section>
+
+  <!-- ── Offline Banner ── -->
+  <div id="offlineBanner" class="offline-banner hidden">
+    You are offline &mdash; captures will sync when reconnected.
+  </div>
 
   <!-- ── Data Table ── -->
   <section id="dataSection" class="data-section" aria-label="Saved samples">
@@ -90,10 +178,13 @@
         <thead>
           <tr>
             <th>Label</th>
+            <th>Amphi</th>
+            <th>Fl</th>
             <th>Timestamp</th>
-            <th>Accuracy (m)</th>
+            <th>Acc (m)</th>
             <th>Lat</th>
             <th>Lon</th>
+            <th>Conf</th>
             <th>Notes</th>
           </tr>
         </thead>
@@ -103,10 +194,44 @@
     <p id="emptyMsg" class="empty-msg">No samples yet.</p>
   </section>
 
+  <!-- ── Per-Amphi Stats ── -->
+  <details id="amphiStatsPanel" class="amphi-stats-panel">
+    <summary>Per-Amphi Stats</summary>
+    <div id="amphiStatsBody" class="amphi-stats-body"></div>
+  </details>
+
   <footer>
-    <p>Data stored in browser only. Export regularly.</p>
+    <p>Data stored locally &amp; synced to cloud. Export regularly.</p>
   </footer>
 
+  <!-- ── Toast Container ── -->
+  <div id="toastContainer" class="toast-container"></div>
+
+  <!-- ── Collector ID Modal ── -->
+  <div id="collectorModal" class="modal-overlay hidden">
+    <div class="modal-box">
+      <h3>Welcome to AmphiGPS</h3>
+      <p>Enter your name or ID (used to identify your data collection session):</p>
+      <input type="text" id="collectorModalInput" class="modal-input" placeholder="e.g. Ahmed" maxlength="100">
+      <button type="button" id="btnCollectorModalSave" class="btn btn-save modal-btn">Continue</button>
+    </div>
+  </div>
+
+  <!-- ── Session Map Modal ── -->
+  <div id="sessionMapModal" class="modal-overlay hidden">
+    <div class="modal-fullscreen">
+      <div class="modal-header">
+        <h3>Session Map</h3>
+        <button type="button" id="btnCloseMap" class="btn-close-modal">&times;</button>
+      </div>
+      <div id="sessionMapContainer" class="session-map-container"></div>
+      <div id="sessionMapLegend" class="session-map-legend"></div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <script src="config.js"></script>
+  <script src="db.js"></script>
   <script src="app.js"></script>
 </body>
 </html>
