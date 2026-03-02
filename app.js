@@ -56,8 +56,6 @@
     pendingAcc: document.getElementById("pendingAcc"),
     pendingAlt: document.getElementById("pendingAlt"),
     pendingPressure: document.getElementById("pendingPressure"),
-    pendingAvgAcc: document.getElementById("pendingAvgAcc"),
-    pendingNSamples: document.getElementById("pendingNSamples"),
     pendingTime: document.getElementById("pendingTime"),
     mapPreview: document.getElementById("mapPreview"),
     confidenceBtns: document.getElementById("confidenceBtns"),
@@ -411,8 +409,6 @@
     dom.pendingAcc.textContent = data.accuracy_m.toFixed(1) + " m";
     dom.pendingAlt.textContent = data.altitude_gps != null ? data.altitude_gps.toFixed(1) + " m" : "\u2014";
     dom.pendingPressure.textContent = data.pressure_hpa != null ? data.pressure_hpa.toFixed(1) + " hPa" : "\u2014";
-    dom.pendingAvgAcc.textContent = data.avg_accuracy_m != null ? data.avg_accuracy_m.toFixed(1) + " m" : "\u2014";
-    dom.pendingNSamples.textContent = data.n_gps_samples || "\u2014";
     dom.pendingTime.textContent = formatShortTime(data.timestamp_iso);
     dom.notesInput.value = "";
     selectedConfidence = 2;
@@ -489,44 +485,16 @@
     return selectedOutLocation;
   }
 
-  // ── Geolocation – watchPosition burst (C1/H1) ──
-  var GPS_BURST_MAX_MS = 4000;   // hard time cap
-  var GPS_BURST_MIN_READINGS = 2; // need at least 2 before early exit
-
-  function acquireAveragedPosition() {
+  // ── Geolocation (C1) ──
+  function acquirePosition() {
     return new Promise(function (resolve, reject) {
       if (!navigator.geolocation) {
         reject(new Error("Geolocation API is not supported by this browser."));
         return;
       }
-
-      var readings = [];
-      var done = false;
-      var threshold = getThreshold();
-      var startTime = Date.now();
-
-      function finish() {
-        if (done) return;
-        done = true;
-        navigator.geolocation.clearWatch(watchId);
-        if (readings.length === 0) {
-          reject(new Error("No GPS readings received. Ensure GPS/Location is enabled."));
-          return;
-        }
-        resolve(processReadings(readings));
-      }
-
-      // Update loading text with elapsed time
-      var tickInterval = setInterval(function () {
-        if (done) { clearInterval(tickInterval); return; }
-        var elapsed = ((Date.now() - startTime) / 1000).toFixed(0);
-        setLoading(true, "GPS: " + readings.length + " readings (" + elapsed + "s)\u2026");
-      }, 300);
-
-      var watchId = navigator.geolocation.watchPosition(
+      navigator.geolocation.getCurrentPosition(
         function (pos) {
-          if (done) return;
-          readings.push({
+          resolve({
             lat: pos.coords.latitude,
             lon: pos.coords.longitude,
             accuracy: pos.coords.accuracy,
@@ -534,73 +502,27 @@
             altitude_acc_gps: pos.coords.altitudeAccuracy,
             timestamp: new Date(pos.timestamp).toISOString(),
           });
-          // Early exit: good accuracy + enough readings
-          if (readings.length >= GPS_BURST_MIN_READINGS && pos.coords.accuracy <= threshold) {
-            clearInterval(tickInterval);
-            finish();
-          }
         },
         function (err) {
-          if (done) return;
-          // If we already have readings, just stop; otherwise reject
-          if (readings.length > 0) {
-            clearInterval(tickInterval);
-            finish();
-          } else {
-            done = true;
-            clearInterval(tickInterval);
-            navigator.geolocation.clearWatch(watchId);
-            var msg;
-            switch (err.code) {
-              case err.PERMISSION_DENIED:
-                msg = "Location permission denied. Please allow location access.";
-                break;
-              case err.POSITION_UNAVAILABLE:
-                msg = "Location unavailable. Ensure GPS/Location is enabled.";
-                break;
-              case err.TIMEOUT:
-                msg = "Location request timed out. Try again in an open area.";
-                break;
-              default:
-                msg = "Geolocation error: " + err.message;
-            }
-            reject(new Error(msg));
+          var msg;
+          switch (err.code) {
+            case err.PERMISSION_DENIED:
+              msg = "Location permission denied. Please allow location access.";
+              break;
+            case err.POSITION_UNAVAILABLE:
+              msg = "Location unavailable. Ensure GPS/Location is enabled.";
+              break;
+            case err.TIMEOUT:
+              msg = "Location request timed out. Try again in an open area.";
+              break;
+            default:
+              msg = "Geolocation error: " + err.message;
           }
+          reject(new Error(msg));
         },
-        { enableHighAccuracy: true, timeout: GPS_BURST_MAX_MS + 2000, maximumAge: 0 }
+        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
       );
-
-      // Hard time cap
-      setTimeout(function () {
-        clearInterval(tickInterval);
-        finish();
-      }, GPS_BURST_MAX_MS);
     });
-  }
-
-  function processReadings(readings) {
-    var threshold = getThreshold();
-    var valid = readings.filter(function (r) { return r.accuracy <= threshold * 3; });
-    if (valid.length === 0) valid = readings;
-    var best = valid.reduce(function (a, b) { return a.accuracy < b.accuracy ? a : b; });
-    var sumLat = 0, sumLon = 0, sumAcc = 0;
-    for (var i = 0; i < valid.length; i++) {
-      sumLat += valid[i].lat;
-      sumLon += valid[i].lon;
-      sumAcc += valid[i].accuracy;
-    }
-    return {
-      lat: best.lat,
-      lon: best.lon,
-      accuracy: best.accuracy,
-      altitude_gps: best.altitude_gps,
-      altitude_acc_gps: best.altitude_acc_gps,
-      timestamp: best.timestamp,
-      avg_lat: sumLat / valid.length,
-      avg_lon: sumLon / valid.length,
-      avg_accuracy_m: sumAcc / valid.length,
-      n_gps_samples: valid.length,
-    };
   }
 
   // ── Barometric Pressure (C2) ──
@@ -643,7 +565,7 @@
     setLoading(true, "Acquiring GPS\u2026");
     try {
       var results = await Promise.allSettled([
-        acquireAveragedPosition(),
+        acquirePosition(),
         acquireBarometricPressure(),
       ]);
       setLoading(false);
@@ -666,10 +588,6 @@
         altitude_gps: pos.altitude_gps,
         altitude_acc_gps: pos.altitude_acc_gps,
         timestamp_iso: pos.timestamp,
-        avg_lat: pos.avg_lat,
-        avg_lon: pos.avg_lon,
-        avg_accuracy_m: pos.avg_accuracy_m,
-        n_gps_samples: pos.n_gps_samples,
         pressure_hpa: baro ? baro.pressure_hpa : null,
         baro_alt_m: baro ? baro.baro_alt_m : null,
       });
@@ -697,10 +615,6 @@
       accuracy_m: pendingCapture.accuracy_m,
       altitude_gps: pendingCapture.altitude_gps,
       altitude_acc_gps: pendingCapture.altitude_acc_gps,
-      avg_lat: pendingCapture.avg_lat,
-      avg_lon: pendingCapture.avg_lon,
-      avg_accuracy_m: pendingCapture.avg_accuracy_m,
-      n_gps_samples: pendingCapture.n_gps_samples,
       pressure_hpa: pendingCapture.pressure_hpa,
       baro_alt_m: pendingCapture.baro_alt_m,
       notes: dom.notesInput.value.trim(),
@@ -823,7 +737,6 @@
     var headers = [
       "timestamp_iso", "label", "amphi_id", "floor", "confidence",
       "lat", "lon", "accuracy_m", "altitude_gps", "altitude_acc_gps",
-      "avg_lat", "avg_lon", "avg_accuracy_m", "n_gps_samples",
       "pressure_hpa", "baro_alt_m", "session_id", "collector_id",
       "out_location",
     ];
@@ -844,10 +757,6 @@
         s.accuracy_m != null ? s.accuracy_m.toFixed(1) : "",
         s.altitude_gps != null ? s.altitude_gps.toFixed(1) : "",
         s.altitude_acc_gps != null ? s.altitude_acc_gps.toFixed(1) : "",
-        s.avg_lat != null ? s.avg_lat.toFixed(6) : "",
-        s.avg_lon != null ? s.avg_lon.toFixed(6) : "",
-        s.avg_accuracy_m != null ? s.avg_accuracy_m.toFixed(1) : "",
-        s.n_gps_samples || "",
         s.pressure_hpa != null ? s.pressure_hpa.toFixed(1) : "",
         s.baro_alt_m != null ? s.baro_alt_m.toFixed(1) : "",
         s.session_id || "",
