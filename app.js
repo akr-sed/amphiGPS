@@ -9,7 +9,6 @@
   // ── Constants ──
   var STORAGE_KEY = "amphigps_samples";
   var SETTINGS_KEY = "amphigps_settings";
-  var COLLECTOR_KEY = "amphigps_collector_id";
   var AMPHI_KEY = "amphigps_session_amphi";
   var APP_VERSION = "2.0.0";
 
@@ -23,7 +22,6 @@
   var dom = {
     // Header
     syncStatusIcon: document.getElementById("syncStatusIcon"),
-    collectorSubtitle: document.getElementById("collectorSubtitle"),
     // Session bar
     amphiSelect: document.getElementById("amphiSelect"),
     amphiCustom: document.getElementById("amphiCustom"),
@@ -77,8 +75,6 @@
     includeNotes: document.getElementById("includeNotes"),
     includeDevice: document.getElementById("includeDevice"),
     syncStats: document.getElementById("syncStats"),
-    collectorInput: document.getElementById("collectorInput"),
-    btnSaveCollector: document.getElementById("btnSaveCollector"),
     // Action buttons
     btnSync: document.getElementById("btnSync"),
     btnExport: document.getElementById("btnExport"),
@@ -91,10 +87,6 @@
     emptyMsg: document.getElementById("emptyMsg"),
     // Toast
     toastContainer: document.getElementById("toastContainer"),
-    // Collector modal
-    collectorModal: document.getElementById("collectorModal"),
-    collectorModalInput: document.getElementById("collectorModalInput"),
-    btnCollectorModalSave: document.getElementById("btnCollectorModalSave"),
     // Session map modal
     sessionMapModal: document.getElementById("sessionMapModal"),
     btnCloseMap: document.getElementById("btnCloseMap"),
@@ -108,11 +100,11 @@
   var samples = [];
   var pendingCapture = null;
   var sessionId = generateSessionId();
-  var collectorId = localStorage.getItem(COLLECTOR_KEY) || "";
   var selectedAmphi = localStorage.getItem(AMPHI_KEY) || "";
   var selectedConfidence = 2;
   var selectedOutLocation = "Hallway";
   var liveWatchId = null;
+  var lastLivePosition = null;
   var previewMap = null;
   var sessionMap = null;
   var leafletLoaded = false;
@@ -160,24 +152,6 @@
     dom.accuracyThreshold.value = settings.accuracyThreshold;
     dom.includeNotes.checked = settings.includeNotes;
     dom.includeDevice.checked = settings.includeDevice;
-    // Collector
-    dom.collectorInput.value = collectorId;
-  }
-
-  // ── Collector ID (C5) ──
-  function checkCollectorId() {
-    if (!collectorId) {
-      dom.collectorModal.classList.remove("hidden");
-    } else {
-      dom.collectorSubtitle.textContent = "Collector: " + collectorId;
-    }
-  }
-
-  function saveCollectorId(id) {
-    collectorId = id.trim();
-    localStorage.setItem(COLLECTOR_KEY, collectorId);
-    dom.collectorSubtitle.textContent = collectorId ? "Collector: " + collectorId : "";
-    dom.collectorInput.value = collectorId;
   }
 
   // ── Amphi / Floor (C3) ──
@@ -261,7 +235,6 @@
     loadFromStorage();
     applySettings();
     restoreSessionContext();
-    checkCollectorId();
     renderCounters();
     renderTable();
     renderAmphiStats();
@@ -487,6 +460,14 @@
 
   // ── Geolocation (C1) ──
   function acquirePosition() {
+    // Use the cached live GPS position if fresh (within last 5 seconds)
+    if (lastLivePosition) {
+      var age = Date.now() - new Date(lastLivePosition.timestamp).getTime();
+      if (age < 5000) {
+        return Promise.resolve(lastLivePosition);
+      }
+    }
+    // Fall back to a fresh getCurrentPosition call
     return new Promise(function (resolve, reject) {
       if (!navigator.geolocation) {
         reject(new Error("Geolocation API is not supported by this browser."));
@@ -520,7 +501,7 @@
           }
           reject(new Error(msg));
         },
-        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+        { enableHighAccuracy: true, timeout: 10000, maximumAge: 5000 }
       );
     });
   }
@@ -603,7 +584,6 @@
 
     var sample = {
       session_id: sessionId,
-      collector_id: collectorId,
       device_info: (navigator.userAgent || "").substring(0, 200),
       amphi_id: getSelectedAmphi(),
       floor: getSelectedFloor(),
@@ -729,7 +709,6 @@
     lines.push("# AmphiGPS Export");
     lines.push("# Export date: " + new Date().toISOString());
     lines.push("# App version: " + APP_VERSION);
-    lines.push("# Collector: " + (collectorId || "Unknown"));
     lines.push("# Total samples: " + samples.length + " (IN: " + inN + ", OUT: " + outN + ")");
     lines.push("# Synced to cloud: " + syncN + "/" + samples.length);
     lines.push("#");
@@ -737,7 +716,7 @@
     var headers = [
       "timestamp_iso", "label", "amphi_id", "floor", "confidence",
       "lat", "lon", "accuracy_m", "altitude_gps", "altitude_acc_gps",
-      "pressure_hpa", "baro_alt_m", "session_id", "collector_id",
+      "pressure_hpa", "baro_alt_m", "session_id",
       "out_location",
     ];
     if (includeNotes) headers.push("notes");
@@ -760,7 +739,6 @@
         s.pressure_hpa != null ? s.pressure_hpa.toFixed(1) : "",
         s.baro_alt_m != null ? s.baro_alt_m.toFixed(1) : "",
         s.session_id || "",
-        '"' + (s.collector_id || "").replace(/"/g, '""') + '"',
         '"' + (s.out_location || "").replace(/"/g, '""') + '"',
       ];
       if (includeNotes) {
@@ -826,6 +804,14 @@
     if (!dom.pendingPanel.classList.contains("hidden")) return;
     liveWatchId = navigator.geolocation.watchPosition(
       function (pos) {
+        lastLivePosition = {
+          lat: pos.coords.latitude,
+          lon: pos.coords.longitude,
+          accuracy: pos.coords.accuracy,
+          altitude_gps: pos.coords.altitude,
+          altitude_acc_gps: pos.coords.altitudeAccuracy,
+          timestamp: new Date(pos.timestamp).toISOString(),
+        };
         dom.liveGpsLat.textContent = pos.coords.latitude.toFixed(6);
         dom.liveGpsLon.textContent = pos.coords.longitude.toFixed(6);
         var acc = pos.coords.accuracy;
@@ -1068,19 +1054,6 @@
     dom.accuracyThreshold.addEventListener("change", saveSettings);
     dom.includeNotes.addEventListener("change", saveSettings);
     dom.includeDevice.addEventListener("change", saveSettings);
-
-    // Collector ID
-    dom.btnSaveCollector.addEventListener("click", function () {
-      saveCollectorId(dom.collectorInput.value);
-      showToast("Collector ID saved.", "success", 1500);
-    });
-
-    dom.btnCollectorModalSave.addEventListener("click", function () {
-      var val = dom.collectorModalInput.value.trim();
-      if (!val) return;
-      saveCollectorId(val);
-      dom.collectorModal.classList.add("hidden");
-    });
 
     // Online/offline
     window.addEventListener("online", function () {

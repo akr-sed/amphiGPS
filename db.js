@@ -37,7 +37,6 @@ var DbService = (function () {
     try {
       var row = {
         session_id: sample.session_id,
-        collector_id: sample.collector_id,
         amphi_id: sample.amphi_id || null,
         floor: sample.floor != null ? sample.floor : null,
         timestamp_iso: sample.timestamp_iso,

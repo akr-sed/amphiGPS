@@ -12,7 +12,6 @@
   <header>
     <h1>AmphiGPS <span id="syncStatusIcon" class="sync-status-icon"></span></h1>
     <p class="subtitle">Amphitheatre Attendance Logger</p>
-    <p class="collector-subtitle" id="collectorSubtitle"></p>
   </header>
 
   <!-- ── Session Context Bar ── -->
@@ -94,12 +93,6 @@
       </label>
       <hr class="settings-divider">
       <p id="syncStats" class="sync-stats"></p>
-      <hr class="settings-divider">
-      <label for="collectorInput">
-        Your name/ID:
-        <input type="text" id="collectorInput" class="settings-text-input" placeholder="e.g. Ahmed" maxlength="100">
-      </label>
-      <button type="button" id="btnSaveCollector" class="btn btn-small btn-save-settings">Save Collector ID</button>
     </div>
   </details>
 
@@ -214,16 +207,6 @@
 
   <!-- ── Toast Container ── -->
   <div id="toastContainer" class="toast-container"></div>
-
-  <!-- ── Collector ID Modal ── -->
-  <div id="collectorModal" class="modal-overlay hidden">
-    <div class="modal-box">
-      <h3>Welcome to AmphiGPS</h3>
-      <p>Enter your name or ID (used to identify your data collection session):</p>
-      <input type="text" id="collectorModalInput" class="modal-input" placeholder="e.g. Ahmed" maxlength="100">
-      <button type="button" id="btnCollectorModalSave" class="btn btn-save modal-btn">Continue</button>
-    </div>
-  </div>
 
   <!-- ── Session Map Modal ── -->
   <div id="sessionMapModal" class="modal-overlay hidden">
