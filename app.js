@@ -7,7 +7,6 @@
   "use strict";
 
   // ── Constants ──
-  var STORAGE_KEY = "amphigps_samples";
   var SETTINGS_KEY = "amphigps_settings";
   var AMPHI_KEY = "amphigps_session_amphi";
   var APP_VERSION = "2.0.0";
@@ -30,7 +29,7 @@
     totalCount: document.getElementById("totalCount"),
     inCount: document.getElementById("inCount"),
     outCount: document.getElementById("outCount"),
-    syncedCount: document.getElementById("syncedCount"),
+    cloudCount: document.getElementById("cloudCount"),
     // Live GPS
     liveGpsPanel: document.getElementById("liveGpsPanel"),
     liveGpsLat: document.getElementById("liveGpsLat"),
@@ -79,8 +78,8 @@
     btnExport: document.getElementById("btnExport"),
     btnSessionMap: document.getElementById("btnSessionMap"),
     btnClear: document.getElementById("btnClear"),
-    // Offline banner
-    offlineBanner: document.getElementById("offlineBanner"),
+    // Connection status
+    connectionBanner: document.getElementById("connectionBanner"),
     // Data table
     dataBody: document.getElementById("dataBody"),
     emptyMsg: document.getElementById("emptyMsg"),
@@ -231,52 +230,29 @@
 
   // ── Initialisation ──
   function init() {
-    loadFromStorage();
     applySettings();
     restoreSessionContext();
     renderCounters();
     renderTable();
     renderAmphiStats();
-    updateSyncStats();
-    updateSyncStatusIcon();
+    updateConnectionStatus();
     bindEvents();
     startLiveGps();
     checkOnlineStatus();
-    registerServiceWorker();
-  }
-
-  // ── LocalStorage ──
-  function loadFromStorage() {
-    try {
-      var raw = localStorage.getItem(STORAGE_KEY);
-      if (raw) samples = JSON.parse(raw);
-    } catch (e) {
-      console.warn("Failed to parse stored samples:", e);
-      samples = [];
-    }
-  }
-
-  function saveToStorage() {
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(samples));
-    } catch (e) {
-      console.error("Failed to save to localStorage:", e);
-      showToast("Warning: could not save to localStorage.", "error", 3000);
-    }
+    unregisterServiceWorker();
   }
 
   // ── Counters (H5) ──
   function renderCounters() {
-    var inN = 0, outN = 0, syncN = 0;
+    var inN = 0, outN = 0;
     for (var i = 0; i < samples.length; i++) {
       if (samples[i].label === "IN") inN++;
       if (samples[i].label === "OUT") outN++;
-      if (samples[i].synced) syncN++;
     }
     dom.totalCount.textContent = samples.length;
     dom.inCount.textContent = inN;
     dom.outCount.textContent = outN;
-    dom.syncedCount.textContent = syncN;
+    dom.cloudCount.textContent = samples.length;
   }
 
   // ── Data Table ──
@@ -559,9 +535,14 @@
     }
   }
 
-  // ── Save (C4) ──
+  // ── Save (C4) – Cloud-Only ──
   async function handleSave() {
     if (!pendingCapture) return;
+
+    if (!navigator.onLine) {
+      showToast("No network connection. Cannot save.", "error", 3000);
+      return;
+    }
 
     var sample = {
       session_id: sessionId,
@@ -580,31 +561,31 @@
       baro_alt_m: pendingCapture.baro_alt_m,
       notes: dom.notesInput.value.trim(),
       out_location: pendingCapture.label === "OUT" ? getSelectedOutLocation() : null,
-      synced: false,
     };
 
-    samples.push(sample);
-    saveToStorage();
-    renderCounters();
-    renderTable();
-    renderAmphiStats();
-    hidePending();
+    // Disable save button while saving
+    dom.btnSave.disabled = true;
+    dom.btnSave.textContent = "Saving\u2026";
 
-    // Async sync to Supabase (fire-and-forget from user perspective)
     try {
       var result = await DbService.insertSample(sample);
       if (result.success) {
-        sample.synced = true;
-        saveToStorage();
+        // Use the returned row (may include server-generated fields)
+        samples.push(result.data || sample);
         renderCounters();
-        updateSyncStats();
-        updateSyncStatusIcon();
-        showToast("Saved & synced to cloud", "success", 1500);
+        renderTable();
+        renderAmphiStats();
+        updateConnectionStatus();
+        hidePending();
+        showToast("Saved to cloud", "success", 1500);
       } else {
-        showToast("Saved locally. Will sync when online.", "warning", 2000);
+        showToast("Cloud save failed: " + result.error, "error", 3000);
       }
     } catch (e) {
-      showToast("Saved locally. Will sync when online.", "warning", 2000);
+      showToast("Cloud save failed: " + e.message, "error", 3000);
+    } finally {
+      dom.btnSave.disabled = false;
+      dom.btnSave.textContent = "OK (Save)";
     }
   }
 
@@ -622,28 +603,15 @@
   }
 
   // ── Sync Stats ──
-  function updateSyncStats() {
-    var stats = DbService.getStats(samples);
-    dom.syncStats.textContent = "Cloud: " + stats.synced + " synced / " + stats.pending + " pending";
-  }
-
-  // ── Sync Status Icon (N4) ──
-  function updateSyncStatusIcon() {
-    var stats = DbService.getStats(samples);
-    if (samples.length === 0) {
-      dom.syncStatusIcon.textContent = "";
-    } else if (!navigator.onLine) {
-      dom.syncStatusIcon.className = "sync-status-icon sync-offline";
-      dom.syncStatusIcon.textContent = "\u2601\uFE0F\u274C";
-      dom.syncStatusIcon.title = "Offline, " + stats.pending + " pending";
-    } else if (stats.pending === 0) {
+  function updateConnectionStatus() {
+    if (navigator.onLine) {
       dom.syncStatusIcon.className = "sync-status-icon sync-ok";
       dom.syncStatusIcon.textContent = "\u2601\uFE0F\u2705";
-      dom.syncStatusIcon.title = "All synced";
+      dom.syncStatusIcon.title = "Connected \u2013 " + samples.length + " samples in cloud";
     } else {
-      dom.syncStatusIcon.className = "sync-status-icon sync-pending";
-      dom.syncStatusIcon.textContent = "\u2601\uFE0F\u23F3";
-      dom.syncStatusIcon.title = stats.pending + " pending sync";
+      dom.syncStatusIcon.className = "sync-status-icon sync-offline";
+      dom.syncStatusIcon.textContent = "\u2601\uFE0F\u274C";
+      dom.syncStatusIcon.title = "Offline \u2013 cannot save or load";
     }
   }
 
@@ -655,11 +623,10 @@
     }
     var includeNotes = dom.includeNotes.checked;
     var includeDevice = dom.includeDevice.checked;
-    var inN = 0, outN = 0, syncN = 0;
+    var inN = 0, outN = 0;
     for (var i = 0; i < samples.length; i++) {
       if (samples[i].label === "IN") inN++;
       if (samples[i].label === "OUT") outN++;
-      if (samples[i].synced) syncN++;
     }
 
     var lines = [];
@@ -667,7 +634,7 @@
     lines.push("# Export date: " + new Date().toISOString());
     lines.push("# App version: " + APP_VERSION);
     lines.push("# Total samples: " + samples.length + " (IN: " + inN + ", OUT: " + outN + ")");
-    lines.push("# Synced to cloud: " + syncN + "/" + samples.length);
+    lines.push("# Source: Cloud (Supabase)");
     lines.push("#");
 
     var headers = [
@@ -726,31 +693,24 @@
     showToast("CSV exported!", "success", 1500);
   }
 
-  // ── Clear All ──
+  // ── Clear All (session view only — cloud data is preserved for admins) ──
   function handleClear() {
     if (samples.length === 0) {
       showToast("No data to clear.", "warning", 1500);
       return;
     }
     var ok1 = confirm(
-      "Are you sure you want to delete ALL " + samples.length +
-      " samples?\nThis action cannot be undone."
+      "Clear " + samples.length +
+      " samples from this session view?\nCloud data is preserved for admins."
     );
     if (!ok1) return;
-    var typed = prompt('To confirm deletion, type "CLEAR" (all caps):');
-    if (typed !== "CLEAR") {
-      showToast("Deletion cancelled.", "info", 1500);
-      return;
-    }
     samples = [];
-    saveToStorage();
     renderCounters();
     renderTable();
     renderAmphiStats();
-    updateSyncStats();
-    updateSyncStatusIcon();
+    updateConnectionStatus();
     hidePending();
-    showToast("All data cleared.", "success", 1500);
+    showToast("Session view cleared.", "success", 1500);
   }
 
   // ── Live GPS (M1) ──
@@ -928,22 +888,32 @@
     dom.amphiStatsBody.innerHTML = html || '<p class="empty-msg">No data yet.</p>';
   }
 
-  // ── Offline Detection (M5) ──
+  // ── Online/Offline Detection ──
   function checkOnlineStatus() {
     if (!navigator.onLine) {
-      dom.offlineBanner.classList.remove("hidden");
+      dom.connectionBanner.classList.remove("hidden");
     } else {
-      dom.offlineBanner.classList.add("hidden");
+      dom.connectionBanner.classList.add("hidden");
     }
-    updateSyncStatusIcon();
+    updateConnectionStatus();
   }
 
-  // ── Service Worker Registration (M5) ──
-  function registerServiceWorker() {
+  // ── Unregister Service Worker (remove offline caching) ──
+  function unregisterServiceWorker() {
     if ("serviceWorker" in navigator) {
-      navigator.serviceWorker.register("sw.js").catch(function (e) {
-        console.warn("SW registration failed:", e);
+      navigator.serviceWorker.getRegistrations().then(function (registrations) {
+        registrations.forEach(function (reg) {
+          reg.unregister();
+        });
       });
+      // Clear old caches
+      if ("caches" in window) {
+        caches.keys().then(function (keys) {
+          keys.forEach(function (key) {
+            caches.delete(key);
+          });
+        });
+      }
     }
   }
 
@@ -1012,15 +982,15 @@
 
     // Online/offline
     window.addEventListener("online", function () {
-      dom.offlineBanner.classList.add("hidden");
-      updateSyncStatusIcon();
-      showToast("Back online!", "success", 1500);
+      dom.connectionBanner.classList.add("hidden");
+      updateConnectionStatus();
+      showToast("Back online! You can save again.", "success", 1500);
     });
 
     window.addEventListener("offline", function () {
-      dom.offlineBanner.classList.remove("hidden");
-      updateSyncStatusIcon();
-      showToast("You are offline.", "warning", 2000);
+      dom.connectionBanner.classList.remove("hidden");
+      updateConnectionStatus();
+      showToast("You are offline. Saving is disabled.", "error", 2000);
     });
   }
 

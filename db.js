@@ -1,6 +1,7 @@
 /**
- * AmphiGPS – Supabase Database Service
- * All data syncs to the project owner's Supabase instance.
+ * AmphiGPS – Supabase Database Service (Write-Only for Users)
+ * Samples are pushed to Supabase on save. Users see only their current
+ * session data in-memory. Cloud data is for admin/analytics use.
  * Must be loaded AFTER the Supabase CDN script in index.html.
  */
 var DbService = (function () {
@@ -25,10 +26,15 @@ var DbService = (function () {
     }
   }
 
-  function isConfigured() {
-    return true;
+  function isReady() {
+    if (!client) init();
+    return !!client;
   }
 
+  /**
+   * Insert a single sample row into Supabase.
+   * Returns the inserted row (with server-generated id) on success.
+   */
   async function insertSample(sample) {
     if (!client) {
       init();
@@ -53,47 +59,13 @@ var DbService = (function () {
         notes: sample.notes,
         out_location: sample.out_location || null,
       };
-      var result = await client.from("amphi_samples").insert([row]);
+      var result = await client.from("amphi_samples").insert([row]).select();
       if (result.error) return { success: false, error: result.error.message };
-      return { success: true };
+      return { success: true, data: result.data ? result.data[0] : row };
     } catch (e) {
       console.error("DbService.insertSample error:", e);
       return { success: false, error: e.message };
     }
-  }
-
-  async function syncPending(samples, saveCallback) {
-    if (!client) {
-      init();
-      if (!client) return { success: false, error: "Supabase not initialized", synced: 0 };
-    }
-    var synced = 0;
-    var errors = [];
-    for (var i = 0; i < samples.length; i++) {
-      if (samples[i].synced) continue;
-      try {
-        var result = await insertSample(samples[i]);
-        if (result.success) {
-          samples[i].synced = true;
-          synced++;
-        } else {
-          errors.push(result.error);
-        }
-      } catch (e) {
-        errors.push(e.message);
-      }
-    }
-    if (saveCallback) saveCallback();
-    return { success: errors.length === 0, synced: synced, errors: errors };
-  }
-
-  function getStats(samples) {
-    var total = samples.length;
-    var syncedCount = 0;
-    for (var i = 0; i < total; i++) {
-      if (samples[i].synced) syncedCount++;
-    }
-    return { total: total, synced: syncedCount, pending: total - syncedCount };
   }
 
   // Auto-init on load
@@ -101,9 +73,7 @@ var DbService = (function () {
 
   return {
     init: init,
-    isConfigured: isConfigured,
+    isReady: isReady,
     insertSample: insertSample,
-    syncPending: syncPending,
-    getStats: getStats,
   };
 })();

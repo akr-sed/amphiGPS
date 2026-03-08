@@ -4,7 +4,6 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
   <meta name="theme-color" content="#1a1a2e">
-  <link rel="manifest" href="manifest.json">
   <title>AmphiGPS – Attendance Logger</title>
   <link rel="stylesheet" href="style.css">
 </head>
@@ -51,9 +50,9 @@
       <span class="counter-value" id="outCount">0</span>
       <span class="counter-label">OUT</span>
     </div>
-    <div class="counter-box counter-synced">
-      <span class="counter-value" id="syncedCount">0</span>
-      <span class="counter-label">Synced</span>
+    <div class="counter-box counter-cloud">
+      <span class="counter-value" id="cloudCount">0</span>
+      <span class="counter-label">Cloud</span>
     </div>
   </section>
 
@@ -92,7 +91,7 @@
         Include device info in CSV export
       </label>
       <hr class="settings-divider">
-      <p id="syncStats" class="sync-stats"></p>
+      <p id="syncStats" class="sync-stats">Captures are sent directly to the cloud. You see only this session's data.</p>
     </div>
   </details>
 
@@ -165,9 +164,9 @@
     <button id="btnClear" class="btn btn-clear" type="button">Clear all</button>
   </section>
 
-  <!-- ── Offline Banner ── -->
-  <div id="offlineBanner" class="offline-banner hidden">
-    You are offline &mdash; captures will sync when reconnected.
+  <!-- ── Connection Banner ── -->
+  <div id="connectionBanner" class="offline-banner hidden">
+    No network connection &mdash; saving is disabled.
   </div>
 
   <!-- ── Data Table ── -->
@@ -200,7 +199,7 @@
   </details>
 
   <footer>
-    <p>Data stored locally &amp; synced to cloud. Export regularly.</p>
+    <p>Captures saved directly to cloud. Session data shown locally.</p>
   </footer>
 
   <!-- ── Toast Container ── -->
